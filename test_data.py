@@ -56,3 +56,7 @@ class TestData(unittest.TestCase):
     def test_total_deaths_sum(self):
         self.assertEqual(73, self.total_deaths_df['deaths'].sum(),
                          'The number of total deaths in all countries needs to match')
+
+    def test_multiple_country_columns(self):
+        new_df = self.csv_df.rename(columns={'Province/State': 'Country_state'})
+        self.assertRaises(ValueError, get_daily_deaths_by_country, new_df)
