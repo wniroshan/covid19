@@ -30,7 +30,7 @@ class TestData(unittest.TestCase):
             self.TOTAL_DEATHS_DF_COLS) + ' as columns')
 
     def test_total_deaths_df_rowcount(self):
-        dates_count = 10
+        dates_count = 5
 
         country_count = 4
         expected_rows = dates_count * country_count
@@ -47,9 +47,9 @@ class TestData(unittest.TestCase):
     def test_total_deaths_df_deaths_column_type(self):
         self.assertTrue(ptypes.is_int64_dtype(self.total_deaths_df['deaths']))
 
-    def test_deaths_sum_by_country_date_par(self):
-        exp_total_deaths = [0, 0, 4, 5, 6, 0, 1, 0, 0, 3, 0, 5, 10, 17, 9, 0, 1, 4, 6,
-                            2]  # Sequentially for each country and date pair
+    def test_deaths_sum_by_country_date_pair(self):
+        exp_total_deaths = [0, 0, 0, 0, 0, 1, 1, 5, 4, 0, 4, 10, 5, 0, 6, 17, 6, 3, 2,
+                            9]  # Sequentially for each country and date pair
         self.assertListEqual(exp_total_deaths, list(self.total_deaths_df['deaths']),
                              'Total deaths by country and date must match')
 
