@@ -2,7 +2,7 @@ import pandas as pd
 import re
 
 
-def get_daily_deaths_by_country(csv_as_df):
+def get_total_deaths_per_country_and_day(csv_as_df):
     """
     Converts the horizontally growing csv table to a vertically growing RDBMS friendly table with one 'date' column
     :param csv_as_df: DataFrame loaded from the csv file

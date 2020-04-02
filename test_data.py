@@ -2,7 +2,7 @@ import unittest
 import pandas as pd
 import pandas.api.types as ptypes
 
-from data import get_daily_deaths_by_country
+from data import get_total_deaths_per_country_and_day
 
 
 class TestData(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestData(unittest.TestCase):
             '2/13/2020': [5, 1, 3, 9, 0, 2]}
 
         cls.csv_df = pd.DataFrame(data)
-        cls.total_deaths_df = get_daily_deaths_by_country(cls.csv_df)
+        cls.total_deaths_df = get_total_deaths_per_country_and_day(cls.csv_df)
 
     def test_total_deaths_df_columns(self):
         cols = list(self.total_deaths_df.columns.values)
@@ -59,4 +59,4 @@ class TestData(unittest.TestCase):
 
     def test_multiple_country_columns(self):
         new_df = self.csv_df.rename(columns={'Province/State': 'Country_state'})
-        self.assertRaises(ValueError, get_daily_deaths_by_country, new_df)
+        self.assertRaises(ValueError, get_total_deaths_per_country_and_day, new_df)
