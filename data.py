@@ -29,3 +29,19 @@ def get_total_deaths_per_country_and_day(csv_as_df):
     stats_df['date'] = pd.to_datetime(stats_df['date'], infer_datetime_format=True)
 
     return stats_df
+
+
+def get_daily_change_in_deaths(df_total_deaths):
+    """
+    Calculates the daily change in deaths for each country
+
+    :param df_total_deaths: Total deaths DataFrame
+    :return: DataFrame showing change in deaths per day for each country
+    """
+    df_total_deaths.sort_values(['country', 'date'], ascending=[True, True], inplace=True)
+
+    # Calculate difference between rows in each Country slice
+    diffs = df_total_deaths.groupby(['country'])['deaths'].diff()
+    changes_df = df_total_deaths.rename(columns={'deaths': 'deaths_change'})
+    changes_df['deaths_change'] = diffs
+    return changes_df
