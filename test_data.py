@@ -3,7 +3,7 @@ import pandas as pd
 import pandas.api.types as ptypes
 
 from data import get_total_deaths_per_country_and_day
-
+import testutils
 
 class TestData(unittest.TestCase):
 
@@ -11,17 +11,7 @@ class TestData(unittest.TestCase):
     def setUpClass(cls):
         cls.TOTAL_DEATHS_DF_COLS = ['country', 'date', 'deaths']
         cls.DEATHS_CHANGE_DF_COLS = ['country', 'date', 'deaths_change']
-        data = {
-            'Province/State': ['Victoria', 'New South Wales', '', 'Texas', 'Virginia', 'England'],
-            'Country/Region': ['Australia', 'Australia', 'Sri Lanka', 'US', 'US', 'UK'],
-            'Lat': [2.11, 3.1, 6.1, 9.3, 9.6, 8.5],
-            '1/1/2020': [0, 0, 0, 0, 0, 0],
-            '1/4/2020': [0, 0, 1, 3, 2, 1],
-            '1/15/2020': [3, 1, 0, 5, 5, 4],
-            '2/1/2020': [4, 1, 0, 10, 7, 6],
-            '2/13/2020': [5, 1, 3, 9, 0, 2]}
-
-        cls.csv_df = pd.DataFrame(data)
+        cls.csv_df = testutils.get_dummy_data()
         cls.total_deaths_df = get_total_deaths_per_country_and_day(cls.csv_df)
 
     def test_total_deaths_df_columns(self):
