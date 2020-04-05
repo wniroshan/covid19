@@ -7,6 +7,7 @@ class DataHandler:
     def get_total_deaths_per_country_and_day(self, csv_as_df):
         """
         Converts the horizontally growing csv table to a vertically growing RDBMS friendly table with one 'date' column
+
         :param csv_as_df: DataFrame loaded from the csv file
         :return: DataFrame with one row per each Country and Date.
         """
@@ -46,3 +47,19 @@ class DataHandler:
         changes_df = df_total_deaths.rename(columns={'deaths': 'deaths_change'})
         changes_df['deaths_change'] = diffs
         return changes_df
+
+    def filter_new_country_date_combinations(self, new_df, curr_df):
+        """
+        Filter the new country and date entries in the new_df with respect to the curr_df
+
+        :param new_df: Data frame based on the latest update of the repo
+        :param curr_df: Data frame based on data already in the system
+        :return: A data frame showing the changed rows in new_df
+        """
+
+        curr_df['date'] = pd.to_datetime(curr_df['date'], infer_datetime_format=True)
+        curr_df = curr_df.set_index(['country', 'date'])
+        new_df = new_df.set_index(['country', 'date'])
+        diff = new_df[~new_df.index.isin(curr_df.index)].dropna()
+
+        return diff
