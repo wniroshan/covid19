@@ -10,7 +10,7 @@ class Database:
         self.deaths_table = 'deaths_total'
         self.deaths_change_python_table = 'deaths_change_python'
 
-    def _create_connection(self):
+    def create_connection(self):
         """
         Creates a database connection to a database
 
@@ -23,6 +23,18 @@ class Database:
             print(e)
         return con
 
+    def execute_query(self, sql):
+        """
+        Executes an SQL query and returns the result
+        :param sql: SQL query
+        :return: Query result
+        """
+        with self.create_connection() as con:
+            cursor = con.cursor()
+            cursor.execute(sql)
+            result = cursor.fetchall()
+        return result
+
     def create_total_deaths_table(self):
         """
         Creates a table named 'total_deaths' in the database with country, date and deaths as columns. The
@@ -30,7 +42,7 @@ class Database:
 
         :return:
         """
-        with self._create_connection() as con:
+        with self.create_connection() as con:
             cursor = con.cursor()
             cursor.execute('CREATE TABLE IF NOT EXISTS deaths_total ( \
                                country TEXT, \
@@ -48,7 +60,7 @@ class Database:
         :return:
         """
 
-        with self._create_connection() as con:
+        with self.create_connection() as con:
             cursor = con.cursor()
             cursor.execute('CREATE TABLE IF NOT EXISTS deaths_change_python ( \
                                country TEXT, \
@@ -75,16 +87,14 @@ class Database:
 
         total_rows = -1
         updated_rows = -1
-        with self._create_connection() as con:
-            cursor = con.cursor()
-            sql = "SELECT COUNT(*) FROM'" + table_name + "';"
-            row_count = cursor.execute(sql).fetchone()[0]
+
+        row_count = self.execute_query("SELECT COUNT(*) FROM'" + table_name + "';")[0][0]
 
         if row_count == 0:
             '''
             The table is empty, insert all the data in the data frame
             '''
-            with self._create_connection() as con:
+            with self.create_connection() as con:
                 new_data_df.to_sql(con=con, name=table_name, if_exists='replace', index=False)
 
             total_rows = len(new_data_df)
@@ -96,14 +106,14 @@ class Database:
                 data is too expensive
                 '''
             # Read the current data from table as a data frame
-            with self._create_connection() as con:
+            with self.create_connection() as con:
                 curr_data = pd.read_sql_query('SELECT * FROM ' + table_name + ';', con=con)
 
             # Filter new country and date combinations
             diff = DataHandler().filter_new_country_date_combinations(new_data_df, curr_data)
 
             # Update table
-            with self._create_connection() as con:
+            with self.create_connection() as con:
                 diff.to_sql(con=con, name=table_name, if_exists='append', index=False)
 
             total_rows = len(curr_data) + len(diff)

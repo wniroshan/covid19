@@ -57,16 +57,7 @@ class TestData(unittest.TestCase):
         dummy_data = testutils.get_dummy_data()
         d = DataHandler()
         deaths = d.get_total_deaths_per_country_and_day(dummy_data)
-        expected_df = pd.DataFrame(data={
-            'country': ['Australia', 'Australia', 'Australia', 'Australia', 'Australia', 'Sri Lanka', 'Sri Lanka',
-                        'Sri Lanka', 'Sri Lanka', 'Sri Lanka', 'UK', 'UK', 'UK', 'UK', 'UK', 'US', 'US', 'US', 'US',
-                        'US'],
-            'date': ['2020-01-01', '2020-01-04', '2020-01-15', '2020-02-01', '2020-02-13', '2020-01-01', '2020-01-04',
-                     '2020-01-15', '2020-02-01', '2020-02-13', '2020-01-01', '2020-01-04', '2020-01-15', '2020-02-01',
-                     '2020-02-13', '2020-01-01', '2020-01-04', '2020-01-15', '2020-02-01', '2020-02-13'],
-            'deaths_change': [None, 0, 4, 1, 3, None, 1, 0, 0, 2, None, 1, 3, 2, 2, None, 5, 5, 7, 2]
-        })
-        expected_df['date'] = pd.to_datetime(expected_df['date'])
+        expected_df = testutils.get_dummy_change_data()
 
         actual = d.get_daily_change_in_deaths(deaths)
         actual.reset_index(drop=True, inplace=True)
