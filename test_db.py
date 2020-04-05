@@ -3,7 +3,7 @@ import pandas as pd
 
 from db import Database
 import testutils
-import data
+from datahandler import DataHandler
 import os
 
 
@@ -16,7 +16,7 @@ class TestDatabase(unittest.TestCase):
             os.remove(db_name)
         cls.db = Database(db_name)
         cls.csv_df = testutils.get_dummy_data()
-        cls.total_deaths_df = data.get_total_deaths_per_country_and_day(cls.csv_df)
+        cls.total_deaths_df = DataHandler().get_total_deaths_per_country_and_day(cls.csv_df)
         cls.total_deaths_table = 'deaths_total'
 
     def setUp(self) -> None:

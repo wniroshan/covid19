@@ -2,8 +2,9 @@ import unittest
 import pandas as pd
 import pandas.api.types as ptypes
 
-from data import get_total_deaths_per_country_and_day
+from datahandler import DataHandler
 import testutils
+
 
 class TestData(unittest.TestCase):
 
@@ -12,7 +13,9 @@ class TestData(unittest.TestCase):
         cls.TOTAL_DEATHS_DF_COLS = ['country', 'date', 'deaths']
         cls.DEATHS_CHANGE_DF_COLS = ['country', 'date', 'deaths_change']
         cls.csv_df = testutils.get_dummy_data()
-        cls.total_deaths_df = get_total_deaths_per_country_and_day(cls.csv_df)
+
+        cls.data = DataHandler()
+        cls.total_deaths_df = cls.data.get_total_deaths_per_country_and_day(cls.csv_df)
 
     def test_total_deaths_df_columns(self):
         cols = list(self.total_deaths_df.columns.values)
@@ -38,15 +41,35 @@ class TestData(unittest.TestCase):
         self.assertTrue(ptypes.is_int64_dtype(self.total_deaths_df['deaths']))
 
     def test_deaths_sum_by_country_date_pair(self):
-        exp_total_deaths = [0, 0, 0, 0, 0, 1, 1, 5, 4, 0, 4, 10, 5, 0, 6, 17, 6, 3, 2,
-                            9]  # Sequentially for each country and date pair
+        exp_total_deaths = [0, 0, 0, 0, 0, 1, 1, 5, 4, 1, 4, 10, 5, 1, 6, 17, 8, 3, 8, 19]  # Sequentially for each country and date pair
         self.assertListEqual(exp_total_deaths, list(self.total_deaths_df['deaths']),
                              'Total deaths by country and date must match')
 
     def test_total_deaths_sum(self):
-        self.assertEqual(73, self.total_deaths_df['deaths'].sum(),
+        self.assertEqual(93, self.total_deaths_df['deaths'].sum(),
                          'The number of total deaths in all countries needs to match')
 
     def test_multiple_country_columns(self):
         new_df = self.csv_df.rename(columns={'Province/State': 'Country_state'})
-        self.assertRaises(ValueError, get_total_deaths_per_country_and_day, new_df)
+        self.assertRaises(ValueError, self.data.get_total_deaths_per_country_and_day, new_df)
+
+    def test_daily_change_calculation(self):
+        dummy_data = testutils.get_dummy_data()
+        d = DataHandler()
+        deaths = d.get_total_deaths_per_country_and_day(dummy_data)
+        expected_df = pd.DataFrame(data={
+            'country': ['Australia', 'Australia', 'Australia', 'Australia', 'Australia', 'Sri Lanka', 'Sri Lanka',
+                        'Sri Lanka', 'Sri Lanka', 'Sri Lanka', 'UK', 'UK', 'UK', 'UK', 'UK', 'US', 'US', 'US', 'US',
+                        'US'],
+            'date': ['2020-01-01', '2020-01-04', '2020-01-15', '2020-02-01', '2020-02-13', '2020-01-01', '2020-01-04',
+                     '2020-01-15', '2020-02-01', '2020-02-13', '2020-01-01', '2020-01-04', '2020-01-15', '2020-02-01',
+                     '2020-02-13', '2020-01-01', '2020-01-04', '2020-01-15', '2020-02-01', '2020-02-13'],
+            'deaths_change': [None, 0, 4, 1, 3, None, 1, 0, 0, 2, None, 1, 3, 2, 2, None, 5, 5, 7, 2]
+        })
+        expected_df['date'] = pd.to_datetime(expected_df['date'])
+
+        actual = d.get_daily_change_in_deaths(deaths)
+        actual.reset_index(drop=True, inplace=True)
+
+        self.assertTrue(expected_df.equals(actual),
+                         "Function generated daily change in deaths must be similar to the expected")
