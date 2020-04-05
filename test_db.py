@@ -87,7 +87,7 @@ class TestDatabase(unittest.TestCase):
 
         sql = "CREATE TABLE deaths_change_sql AS \
                         SELECT country, date, \
-                        deaths - LAG(deaths) OVER (PARTITION BY country ORDER BY date) AS deaths_change \
+                        deaths - LAG(deaths,1,0) OVER (PARTITION BY country ORDER BY date) AS deaths_change \
                         FROM deaths_total;"
 
         self.db.execute_query(sql)

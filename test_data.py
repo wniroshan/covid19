@@ -63,4 +63,14 @@ class TestData(unittest.TestCase):
         actual.reset_index(drop=True, inplace=True)
 
         self.assertTrue(expected_df.equals(actual),
-                         "Function generated daily change in deaths must be similar to the expected")
+                         "Function generated daily change in deaths must be indentical to the expected")
+
+        deaths.loc[0,'deaths'] = 1
+        actual = d.get_daily_change_in_deaths(deaths)
+        self.assertEqual(actual.loc[0,'deaths_change'], 1, "The first day's change in deaths should be 1")
+
+        deaths.loc[0,'deaths'] = 4
+        actual = d.get_daily_change_in_deaths(deaths)
+        self.assertEqual(actual.loc[0,'deaths_change'], 4, "The first day's change in deaths should be 4")
+
+

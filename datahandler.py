@@ -44,8 +44,9 @@ class DataHandler:
 
         # Calculate difference between rows in each Country slice
         diffs = df_total_deaths.groupby(['country'])['deaths'].diff()
+        diffs[diffs.isna()] = df_total_deaths['deaths'][diffs.isna()] # Replace nans with original value
         changes_df = df_total_deaths.rename(columns={'deaths': 'deaths_change'})
-        changes_df['deaths_change'] = diffs
+        changes_df['deaths_change'] = diffs.astype(int)
         return changes_df
 
     def filter_new_country_date_combinations(self, new_df, curr_df):
