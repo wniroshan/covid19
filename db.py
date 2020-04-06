@@ -76,17 +76,43 @@ class Database:
     def insert_to_deaths_change_python_table(self, deaths_change_df):
         return self._insert_deaths_data(deaths_change_df, self.deaths_change_python_table)
 
+    def upsert_to_table(self, data_df, table_name):
+        """
+        Inserts data into a table. If the data row exists corresponding values are updated
+        :param data_df: Data frame
+        :param table_name: Name of the table
+        :return: The number of changed rows
+        """
+        sql = 'INSERT INTO ' + table_name + '(' + ','.join(data_df.columns.values) + ') ' \
+                                                                                     'VALUES (?, ?, ?) ' \
+                                                                                     'ON CONFLICT (country, date) ' \
+                                                                                     'DO UPDATE ' \
+                                                                                     'SET ' + data_df.columns.values[
+                  2] + '=?;'
+        data_df = data_df.copy()
+        data_df.loc[:, 'date'] = data_df.loc[:, 'date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+        data_df.iloc[:, 2] = data_df.iloc[:, 2].astype(str)
+
+        # Copy the deaths/ deaths_change column to a temp column as the fourth parameter
+        data_df.loc[:, 'temp'] = data_df.iloc[:, 2]
+        param_list = [tuple(x) for x in data_df.values]
+        with self.create_connection() as con:
+            cursor = con.cursor()
+            resp = cursor.executemany(sql, param_list)
+
+        return resp.rowcount
+
     def _insert_deaths_data(self, new_data_df, table_name):
         """
-        Inserts deaths data to COVID19 deaths data table, denoted by table_name.
+        Inserts deaths data to COVID19 deaths data table, denoted by table_name. If the new data contain
+        retrospectively modified rows, such rows are updated in the table
 
         :param new_data_df: Data frame with new data
         :param table_name: Name of the table to insert data
-        :return: Total number of rows in table and the number of newly updated rows
+        :return: The number of updated rows
         """
 
-        total_rows = -1
-        updated_rows = -1
+        changed_rows = -1
 
         row_count = self.execute_query("SELECT COUNT(*) FROM'" + table_name + "';")[0][0]
 
@@ -95,10 +121,9 @@ class Database:
             The table is empty, insert all the data in the data frame
             '''
             with self.create_connection() as con:
-                new_data_df.to_sql(con=con, name=table_name, if_exists='replace', index=False)
+                new_data_df.to_sql(con=con, name=table_name, if_exists='append', index=False)
 
-            total_rows = len(new_data_df)
-            updated_rows = len(new_data_df)
+            changed_rows = len(new_data_df)
 
         else:
             '''
@@ -109,13 +134,10 @@ class Database:
             with self.create_connection() as con:
                 curr_data = pd.read_sql_query('SELECT * FROM ' + table_name + ';', con=con)
 
-            # Filter new country and date combinations
-            diff = DataHandler().filter_new_country_date_combinations(new_data_df, curr_data)
+            dh = DataHandler()
+            # Filter changed or newly added country and date combinations
+            modified_rows = dh.get_changed_rows(new_data_df, curr_data)
+            # Update the database
+            changed_rows = self.upsert_to_table(new_data_df.iloc[modified_rows, ], table_name)
 
-            # Update table
-            with self.create_connection() as con:
-                diff.to_sql(con=con, name=table_name, if_exists='append', index=False)
-
-            total_rows = len(curr_data) + len(diff)
-            updated_rows = len(diff)
-        return total_rows, updated_rows
+        return changed_rows

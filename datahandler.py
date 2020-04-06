@@ -29,38 +29,35 @@ class DataHandler:
 
         stats_df = stats_df.groupby('country', as_index=False).sum()  # sum of deaths of all states in a country
         stats_df = pd.melt(stats_df, id_vars=['country'], var_name='date', value_name='deaths')  # arrange vertically
-        stats_df['date'] = pd.to_datetime(stats_df['date'], infer_datetime_format=True)
+        stats_df.loc[:, 'date'] = pd.to_datetime(stats_df['date'], infer_datetime_format=True)
 
         return stats_df
 
-    def get_daily_change_in_deaths(self, df_total_deaths):
+    def get_daily_change_of_deaths(self, df_total_deaths):
         """
-        Calculates the daily change in deaths for each country
+        Calculates the daily change of deaths for each country
 
-        :param df_total_deaths: Total deaths DataFrame
-        :return: DataFrame showing change in deaths per day for each country
+        :param df_total_deaths: Total deaths data frame
+        :return: DataFrame showing change of deaths per day for each country
         """
         df_total_deaths.sort_values(['country', 'date'], ascending=[True, True], inplace=True)
 
         # Calculate difference between rows in each Country slice
         diffs = df_total_deaths.groupby(['country'])['deaths'].diff()
-        diffs[diffs.isna()] = df_total_deaths['deaths'][diffs.isna()] # Replace nans with original value
+        diffs.loc[diffs.isna()] = df_total_deaths.loc[diffs.isna(),'deaths']  # Replace nans with original value
         changes_df = df_total_deaths.rename(columns={'deaths': 'deaths_change'})
-        changes_df['deaths_change'] = diffs.astype(int)
+        changes_df.loc[:, 'deaths_change'] = diffs.astype(int)
         return changes_df
 
-    def filter_new_country_date_combinations(self, new_df, curr_df):
+    def get_changed_rows(self, new_df, curr_df):
         """
-        Filter the new country and date entries in the new_df with respect to the curr_df
-
-        :param new_df: Data frame based on the latest update of the repo
-        :param curr_df: Data frame based on data already in the system
-        :return: A data frame showing the changed rows in new_df
+        Filters the new data rows and the retrospectively updated data rows
+        :param new_df: New data frame from the repository
+        :param curr_df: Data currently in the database
+        :return: List of changed row numbers in new_df
         """
 
-        curr_df['date'] = pd.to_datetime(curr_df['date'], infer_datetime_format=True)
-        curr_df = curr_df.set_index(['country', 'date'])
-        new_df = new_df.set_index(['country', 'date'])
-        diff = new_df[~new_df.index.isin(curr_df.index)].dropna()
-
-        return diff
+        curr_df.loc[:, 'date'] = pd.to_datetime(curr_df.loc[:,'date'], infer_datetime_format=True)
+        diff = new_df[~new_df.isin(curr_df)]
+        indices = diff.loc[~diff.iloc[:, 2].isna()].index
+        return indices
