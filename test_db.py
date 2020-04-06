@@ -16,14 +16,18 @@ class TestDatabase(unittest.TestCase):
             os.remove(db_name)
         cls.db = Database(db_name)
         cls.csv_df = testutils.get_dummy_data()
-        cls.total_deaths_df = DataHandler().get_total_deaths_per_country_and_day(cls.csv_df)
+
         cls.total_deaths_table = 'deaths_total'
+        cls.death_change_python_table = 'deaths_change_python'
 
     def setUp(self) -> None:
         # Start with a clean slate
+        self.total_deaths_df = DataHandler().get_total_deaths_per_country_and_day(self.csv_df)
+
         with self.db.create_connection() as con:
             cursor = con.cursor()
             cursor.execute('DROP TABLE IF EXISTS ' + self.total_deaths_table + ';')
+            cursor.execute('DROP TABLE IF EXISTS ' + self.death_change_python_table + ';')
             con.commit()
 
     def test_create_connection(self):
@@ -67,23 +71,20 @@ class TestDatabase(unittest.TestCase):
         # starting state.
 
         # Now we mimic a new update total_deaths_df Df has extra rows with i.e. latest stats
-        self.db._insert_deaths_data(self.total_deaths_df, self.total_deaths_table)
+        changed_rows = self.db._insert_deaths_data(self.total_deaths_df, self.total_deaths_table)
 
-        with self.db.create_connection() as con:
-            cursor = con.cursor()
-            cursor.execute('SELECT COUNT(*) FROM ' + self.total_deaths_table + ';')
-            new_row_count = cursor.fetchone()[0]
+        table_len = self.db.execute_query('SELECT COUNT(*) FROM ' + self.total_deaths_table + ';')[0][0]
 
-        self.assertEqual(new_row_count, len(self.total_deaths_df),
+        self.assertEqual(table_len, len(self.total_deaths_df),
                          "Only missing data should be added and existing data should not duplicate. Expected row count " +
-                         str(len(self.total_deaths_df)) + " actual row count " + str(new_row_count))
+                         str(len(self.total_deaths_df)) + " actual row count " + str(table_len))
 
     def test_updating_table_with_modified_rows(self):
         self.db.create_total_deaths_table()
 
         # Create a new df by removing some data
         starting_df = self.total_deaths_df[self.total_deaths_df['date'] != pd.to_datetime('2/13/2020')]
-        self.db._insert_deaths_data(starting_df, self.total_deaths_table)  # Add it to the table. This is the
+        self.db.insert_to_deaths_total_table(starting_df)  # Add it to the table. This is the
         # starting state.
 
         # Now we mimic a new total_deaths_df Df that has extra rows  i.e. latest stats and few retrospectively
@@ -92,10 +93,10 @@ class TestDatabase(unittest.TestCase):
         new_df.loc[0, 'deaths'] = new_df.loc[0, 'deaths'] + 1
         new_df.loc[7, 'deaths'] = new_df.loc[7, 'deaths'] - 2
 
-        changed_rows = self.db._insert_deaths_data(new_df, self.total_deaths_table)
+        changed_rows = self.db.insert_to_deaths_total_table(new_df)
 
         updates = self.total_deaths_df[self.total_deaths_df['date'] == pd.to_datetime('2/13/2020')].append(
-            new_df.iloc[[0, 7],])
+            new_df.iloc[[0, 7], ])
 
         self.assertIs(changed_rows, len(updates),
                       'Number of rows changed in the ' + self.total_deaths_table + ' must be the same as updated data \
@@ -107,39 +108,39 @@ class TestDatabase(unittest.TestCase):
                                       total rows in data from the repo')
 
     def test_updating_table_to_correct_values(self):
+        # Tests whether db table gets updated with correct values when doing subsequent runs
         self.db.create_total_deaths_table()
 
         # Create a new df by removing some data
         starting_df = self.total_deaths_df[self.total_deaths_df['date'] != pd.to_datetime('2/13/2020')]
-        self.db._insert_deaths_data(starting_df, self.total_deaths_table)  # Add it to the table. This is the
-        # starting state.
+        self.db.insert_to_deaths_total_table(starting_df)  # Add it to the table. This is the starting state.
 
         # Now we mimic a new update total_deaths_df Df has extra rows with i.e. latest stats and few retrospectively
         # modified rows
         new_df = self.total_deaths_df.copy()
         new_df.loc[1, 'deaths'] = new_df.loc[1, 'deaths'] + 1
-        new_df.loc[9, 'deaths'] = new_df.loc[9, 'deaths'] - 2
+        new_df.loc[6, 'deaths'] = new_df.loc[6, 'deaths'] - 2
 
-        changed_rows = self.db._insert_deaths_data(new_df, self.total_deaths_table)
+        changed_rows = self.db.insert_to_deaths_total_table(new_df)
 
         updates = self.total_deaths_df[self.total_deaths_df['date'] == pd.to_datetime('2/13/2020')].append(
-            new_df.iloc[[1, 9],])
+            new_df.iloc[[1, 6],])
         updates = updates.sort_values(['date', 'country'])
-        updates.loc[:,'date'] = updates.loc[:,'date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+        updates.loc[:, 'date'] = updates.loc[:, 'date'].dt.strftime('%Y-%m-%d %H:%M:%S')
         updates.reset_index(drop=True, inplace=True)
 
         with self.db.create_connection() as con:
             result = pd.read_sql(
                 'SELECT * FROM ' + self.total_deaths_table + ' \
                 WHERE \
-                    date="' + pd.to_datetime('2/13/2020').strftime('%Y-%m-%d %H:%M:%S') + '"\
+                    date="' + pd.to_datetime('2020-02-13').strftime('%Y-%m-%d %H:%M:%S') + '"\
                      OR (\
                         country="' + new_df.loc[1, 'country'] + '" \
                         AND date="' + new_df.loc[1, 'date'].strftime('%Y-%m-%d %H:%M:%S') + '"\
                         )\
                       OR ( \
-                        country="' + new_df.loc[9, 'country'] + '" \
-                        AND date="' + new_df.loc[9, 'date'].strftime('%Y-%m-%d %H:%M:%S') + '" \
+                        country="' + new_df.loc[6, 'country'] + '" \
+                        AND date="' + new_df.loc[6, 'date'].strftime('%Y-%m-%d %H:%M:%S') + '" \
                         )\
                 ORDER BY date, country;',
                 con=con)

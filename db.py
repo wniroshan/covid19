@@ -114,7 +114,7 @@ class Database:
 
         changed_rows = -1
 
-        row_count = self.execute_query("SELECT COUNT(*) FROM'" + table_name + "';")[0][0]
+        row_count = self.execute_query('SELECT COUNT(*) FROM ' + table_name + ';')[0][0]
 
         if row_count == 0:
             '''

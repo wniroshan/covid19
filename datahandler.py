@@ -49,6 +49,7 @@ class DataHandler:
         changes_df.loc[:, 'deaths_change'] = diffs.astype(int)
         return changes_df
 
+
     def get_changed_rows(self, new_df, curr_df):
         """
         Filters the new data rows and the retrospectively updated data rows

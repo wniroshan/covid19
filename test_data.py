@@ -103,3 +103,4 @@ class TestData(unittest.TestCase):
         deaths.loc[0, 'deaths'] = 4
         actual = d.get_daily_change_of_deaths(deaths)
         self.assertEqual(actual.loc[0, 'deaths_change'], 4, "The first day's change in deaths should be 4")
+
