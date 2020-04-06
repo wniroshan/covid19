@@ -169,6 +169,32 @@ class TestDatabase(unittest.TestCase):
         expected_df.loc[:, 'date'] = expected_df.loc[:, 'date'].dt.strftime('%Y-%m-%d %H:%M:%S')
         self.assertTrue(change_df.equals(expected_df))
 
+    def test_db_insert_daily_change_of_deaths(self):
+        self.db.create_deaths_change_python_table()
+        daily_change = DataHandler().get_daily_change_of_deaths(self.total_deaths_df)
+
+        changed_rows = self.db.insert_to_deaths_change_python_table(daily_change)
+
+        rows_in_table = self.db.execute_query("SELECT COUNT(*) FROM " + self.death_change_python_table)[0][0]
+
+        self.assertEqual(rows_in_table, changed_rows,
+                         "Data rows in deaths_change_python table and the number of changed_rows must match")
+
+    def test_no_db_update_on_subsequent_daily_changes_calculations(self):
+
+        # Calculate daily change with current data and insert them to deaths_change_python table
+        self.db.create_deaths_change_python_table()
+        daily_change = DataHandler().get_daily_change_of_deaths(self.total_deaths_df)
+        changed_rows = self.db.insert_to_deaths_change_python_table(daily_change)
+
+        new_daily_change = DataHandler().get_daily_change_of_deaths(self.total_deaths_df)
+
+        self.assertTrue(daily_change.equals(new_daily_change))
+        new_changed_rows = self.db.insert_to_deaths_change_python_table(new_daily_change)
+
+        self.assertIs(new_changed_rows, 0,"There should not be any changes to deaths_change_python table in the second run")
+
+
 
 if __name__ == '__main__':
     unittest.main()

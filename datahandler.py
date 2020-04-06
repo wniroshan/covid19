@@ -40,15 +40,14 @@ class DataHandler:
         :param df_total_deaths: Total deaths data frame
         :return: DataFrame showing change of deaths per day for each country
         """
-        df_total_deaths.sort_values(['country', 'date'], ascending=[True, True], inplace=True)
+        sorted_df = df_total_deaths.sort_values(['country', 'date'], ascending=[True, True], inplace=False)
 
         # Calculate difference between rows in each Country slice
-        diffs = df_total_deaths.groupby(['country'])['deaths'].diff()
-        diffs.loc[diffs.isna()] = df_total_deaths.loc[diffs.isna(),'deaths']  # Replace nans with original value
-        changes_df = df_total_deaths.rename(columns={'deaths': 'deaths_change'})
+        diffs = sorted_df.groupby(['country'])['deaths'].diff()
+        diffs.loc[diffs.isna()] = sorted_df.loc[diffs.isna(), 'deaths']  # Replace nans with original value
+        changes_df = sorted_df.rename(columns={'deaths': 'deaths_change'})
         changes_df.loc[:, 'deaths_change'] = diffs.astype(int)
         return changes_df
-
 
     def get_changed_rows(self, new_df, curr_df):
         """
@@ -57,8 +56,8 @@ class DataHandler:
         :param curr_df: Data currently in the database
         :return: List of changed row numbers in new_df
         """
-
-        curr_df.loc[:, 'date'] = pd.to_datetime(curr_df.loc[:,'date'], infer_datetime_format=True)
+        new_df.reset_index(drop=True, inplace=True)
+        curr_df.loc[:, 'date'] = pd.to_datetime(curr_df.loc[:, 'date'], infer_datetime_format=True)
         diff = new_df[~new_df.isin(curr_df)]
         indices = diff.loc[~diff.iloc[:, 2].isna()].index
         return indices

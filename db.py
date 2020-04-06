@@ -127,9 +127,9 @@ class Database:
 
         else:
             '''
-                If the table is not empty append only the new data rows because re-writing all the 
-                data is too expensive
-                '''
+            If the table is not empty append only the new data rows because re-writing all the 
+            data is too expensive
+            '''
             # Read the current data from table as a data frame
             with self.create_connection() as con:
                 curr_data = pd.read_sql_query('SELECT * FROM ' + table_name + ';', con=con)
